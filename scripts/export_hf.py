@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build a Hugging Face–ready folder from a trained checkpoint.
 
-    python scripts/export_hf.py --checkpoint checkpoints/audio8_eu_sft_v2/export \
-        --repo-id <user>/audio8-tts-eu [--run checkpoints/audio8_eu_sft_v2]
+    python scripts/export_hf.py --checkpoint checkpoints/audio8_eu_sft_v4/export \
+        --repo-id <user>/audio8-tts-eu --run checkpoints/audio8_eu_sft_v4 \
+        --samples noref_s01 noref_s02 --github https://github.com/<user>/TTS_basque
 
 Output: hf_release/<repo-name>/  (git-ignored)
   model weights + codec + remote code + tokenizer/processor   (loadable with AutoModel/AutoProcessor)
@@ -46,12 +47,16 @@ def load_json(path: Path) -> dict | list | None:
     return json.loads(path.read_text()) if path.is_file() else None
 
 
-def metrics_table(rows: list[dict] | None) -> str:
+def metrics_table(rows: list[dict] | None, release: Path | None = None) -> str:
     if not rows:
         return "_Run `python scripts/eval_loss.py --run <run_dir> --out <run_dir>/eval_loss_compare.json` to fill this table._"
     lines = ["| Model | eval loss | slow loss | fast loss | slow acc |", "|---|---:|---:|---:|---:|"]
     for r in rows:
-        name = "base (Audio8-TTS-Realistic-Air)" if r["model"] == "base" else Path(r["model"]).name
+        mp = Path(r["model"])
+        name = ("base (Audio8-TTS-Realistic-Air)" if r["model"] == "base"
+                else mp.parent.name if mp.name == "export" else f"{mp.parent.name}/{mp.name}")
+        if release is not None and r["model"] != "base" and mp.resolve() == release:
+            name = f"**{name} (this release)**"
         lines.append(f"| {name} | {r['eval_loss']:.3f} | {r['slow_loss']:.3f} | {r['fast_loss']:.3f} | {r['slow_acc']:.3f} |")
     return "\n".join(lines)
 
@@ -77,7 +82,7 @@ tags:
 
 # {title}
 
-Basque (*euskara*) text-to-speech: a full supervised fine-tune of
+Basque (*euskara*) text-to-speech: {method_intro} of
 [Edge0/Audio8-TTS-Realistic-Air](https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air)
 (0.6B, DualAR, 44.1 kHz codec, zero-shot voice cloning). Basque is not one of the base
 model's 23 languages, so this release adapts it to a new language.
@@ -130,7 +135,7 @@ Keep each input under about 150 characters.
 | Held out | speakers {holdout}, used for evaluation and never trained on |
 | Audio prep | silence trimming, resampled to 44.1 kHz, loudness set to −20 LUFS (−1 dBFS peak), speaking-rate outlier filter |
 | Voice cloning | {ref_pct}% of training rows paired with another utterance of the same speaker as the reference prompt |
-| Method | full SFT of the slow and fast AR branches, bf16, DeepSpeed ZeRO-2, 1× RTX 5090 (24 GB) |
+| Method | {method_row}, bf16, DeepSpeed ZeRO-2, 1× RTX 5090 (24 GB) |
 | Hyper-params | {hparams} |
 | Pipeline | {github} (Audio8_TTS @ `{audio8_commit}`) |
 
@@ -141,8 +146,9 @@ Teacher-forced loss on {eval_rows} utterances from the held-out speakers (lower 
 {metrics}
 
 A first run (2e-5 learning rate, 6 epochs) reached its best held-out loss after about 250 steps
-and then overfit: OpenSLR 76 has many speakers reading the same sentences. This release comes
-from the shorter, early-stopped run.
+and then overfit: OpenSLR 76 has many speakers reading the same sentences. {release_note}
+
+{robustness}
 
 ## Samples
 
@@ -153,6 +159,13 @@ from the shorter, early-stopped run.
 - Small single-domain corpus (read sentences): spontaneous or expressive speech, long inputs,
   dialects and code-switching are out of distribution.
 - Acronyms and alphanumeric names (`U2`, `AP-68`) are read with Basque digit names.
+- Some generations run away (no end of speech, long silences or babbling), as with the base
+  model. Check the duration and regenerate with another seed when it makes no sense for the
+  text; `scripts/say.py` in the GitHub repo does this automatically.
+- There is no speed parameter. With a reference, the model copies most of the reference's pace;
+  without one, the pace varies from seed to seed.
+- The palatal *tt* / *dd* sounds (*Antton*, *pottoka*) are almost absent from the training data
+  and usually come out wrong. Having the word in the reference helps only sometimes.
 - Voice cloning can imitate real people. Do not clone a voice without the speaker's consent,
   and do not use this model to impersonate anyone or to deceive.
 
@@ -175,6 +188,8 @@ def main() -> int:
     ap.add_argument("--stats", type=Path, default=ROOT / "dataset_processed" / "openslr76" / "sft" / "stats.json")
     ap.add_argument("--github", default="", help="URL of this project's GitHub repo, for the card")
     ap.add_argument("--n-samples", type=int, default=3)
+    ap.add_argument("--samples", nargs="+", help="listen/ stems to include (default: first --n-samples noref_*)")
+    ap.add_argument("--robustness", type=Path, default=ROOT / "checkpoints" / "robustness" / "summary.json")
     ap.add_argument("--out", type=Path)
     args = ap.parse_args()
 
@@ -213,7 +228,12 @@ def main() -> int:
     pfile = ROOT / "dataset_processed" / "openslr76" / "sft" / "val_prompts.jsonl"
     if pfile.is_file():
         prompts = {json.loads(l)["id"]: json.loads(l)["text"] for l in pfile.open(encoding="utf-8")}
-    wavs = sorted(listen.glob("noref_*.wav"))[: args.n_samples] if listen.is_dir() else []
+    if args.samples:
+        wavs = [listen / f"{s}.wav" for s in args.samples]
+        if bad := [w for w in wavs if not w.is_file()]:
+            sys.exit(f"missing samples: {bad}")
+    else:
+        wavs = sorted(listen.glob("noref_*.wav"))[: args.n_samples] if listen.is_dir() else []
     if wavs:
         (out / "samples").mkdir()
         rows = []
@@ -237,7 +257,42 @@ def main() -> int:
     metrics = load_json(args.run / "eval_loss_compare.json") if args.run else None
     tr = stats.get("train", {})
 
+    frozen_fast = env.get("FREEZE_FAST_AR", "false").lower() == "true"
+    frozen_slow = env.get("FREEZE_SLOW_AR", "false").lower() == "true"
+    if frozen_fast:
+        method_intro = "a supervised fine-tune of the slow AR branch (fast AR kept frozen)"
+        method_row = "slow AR branch trained, fast AR (acoustic detail) frozen"
+        release_note = ("This release uses the same short, early-stopped schedule with the fast AR frozen: "
+                        "its loss is slightly higher than the fully fine-tuned run, but it sounds and "
+                        "measures about the same and had fewer runaway generations when cloning.")
+    elif frozen_slow:
+        method_intro, method_row = "a supervised fine-tune of the fast AR branch", "SFT of the fast AR branch only"
+        release_note = "This release fine-tunes only the fast AR branch."
+    else:
+        method_intro = "a full supervised fine-tune"
+        method_row = "full SFT of the slow and fast AR branches"
+        release_note = "This release comes from the shorter, early-stopped run."
+
+    robustness = ""
+    rob = load_json(args.robustness) if args.robustness else None
+    label = f"{ckpt.parent.name}__{ckpt.name}"
+    if rob and label in rob.get("models", {}):
+        lines = ["**Voice cloning and robustness** (8 new sentences × 2 held-out reference voices + no reference, "
+                 f"{len(rob['seeds'])} seeds). SIM = cosine similarity of WavLM speaker embeddings between the output "
+                 f"and the reference (real recordings: {rob['sim_real_same_speaker']} same speaker, "
+                 f"{rob['sim_real_other_speaker']} different speakers). A runaway has no end of speech or a "
+                 f"speaking rate below {rob['min_cps']:g} characters/s.", "",
+                 "| Model | SIM ↑ | runaway, with ref | runaway, no ref |", "|---|---:|---:|---:|"]
+        for key, title in (("base", "base (Audio8-TTS-Realistic-Air)"), (label, "this model")):
+            m = rob["models"].get(key)
+            if m:
+                r, n = m["ref"], m["noref"]
+                lines.append(f"| {title} | {r['sim_mean']} | {r['runaway']}/{r['n']} ({100*r['runaway']/r['n']:.0f}%) "
+                             f"| {n['runaway']}/{n['n']} ({100*n['runaway']/n['n']:.0f}%) |")
+        robustness = "\n".join(lines)
+
     card = CARD.format(
+        method_intro=method_intro, method_row=method_row, release_note=release_note, robustness=robustness,
         title=name, repo_id=args.repo_id,
         train_rows=tr.get("rows", "?"), train_hours=tr.get("hours", "?"),
         train_speakers=stats.get("train_speakers", "?"),
@@ -247,7 +302,7 @@ def main() -> int:
         hparams=hp or "see run_config.env",
         github=args.github or "_(add the GitHub URL with --github)_",
         audio8_commit=git_commit(ROOT / "repos" / "Audio8_TTS"),
-        metrics=metrics_table(metrics), samples=samples_md,
+        metrics=metrics_table(metrics, ckpt), samples=samples_md,
     )
     (out / "README.md").write_text(card, encoding="utf-8")
 

@@ -118,7 +118,7 @@ below 8 characters/s (a short sentence that lasts 15–20 s).
   duration-based retry at inference is the practical fix.
 - v3 drew references at random each time a row was loaded (`DYNAMIC_REF_RATIO=0.75`), and v4 froze
   the fast AR (`FREEZE_FAST_AR=true`). Neither improved SIM or robustness beyond noise, and v4's
-  eval loss is slightly worse (9.19 vs 9.09). The SIM drop therefore does not come from the fast
+  eval loss is slightly worse (9.18 vs 9.09). The SIM drop therefore does not come from the fast
   (acoustic) branch.
 - **v4 is the released model** (demo page). Its loss is slightly higher than v2's, but it sounds and measures about the same, it has fewer runaways with a reference (3% vs 5%), and it keeps the original acoustic decoder.
 
