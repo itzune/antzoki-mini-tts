@@ -1,0 +1,36 @@
+# ── Entorno ──────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ── Datos (se regeneran con scripts/run_data_pipeline.sh) ─
+dataset_raw/*
+!dataset_raw/.gitkeep
+dataset_processed/*
+!dataset_processed/.gitkeep
+
+# ── Pesos, checkpoints, audios generados, logs ───────────
+checkpoints/*
+!checkpoints/.gitkeep
+hf_release/
+*.safetensors
+*.pth
+*.pt
+*.bin
+*.npy
+*.wav
+*.flac
+*.mp3
+!docs/audio/**/*.mp3
+*.zip
+runs/
+*.log
+
+# ── Secretos ─────────────────────────────────────────────
+.env
+.env.*
+*.token
+.claude/settings.local.json

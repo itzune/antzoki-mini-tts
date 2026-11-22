@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="eu" data-lang="eu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio8-TTS euskaraz</title>
+<meta name="description" content="Audio8-TTS-Realistic-Air adapted to Basque (euskara): 0.6B text-to-speech with zero-shot voice cloning, fine-tuned on OpenSLR 76.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c8102e'/><path d='M7 18v-4M11 22V10M15 25V7M19 21v-10M23 18v-4' stroke='white' stroke-width='2.4' stroke-linecap='round'/></svg>">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f8; --border:#e3e5e8; --text:#1e2125; --muted:#5f6670;
+  --accent:#c8102e; --accent-soft:#fbe9ec; --code-bg:#f2f3f5; --good:#0f7b45;
+  --radius:10px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1d1e20; --surface:#26282b; --border:#35383c; --text:#dadadb; --muted:#9b9c9d;
+    --accent:#ff5c74; --accent-soft:#3a2329; --code-bg:#2b2d31; --good:#4cc38a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1d1e20; --surface:#26282b; --border:#35383c; --text:#dadadb; --muted:#9b9c9d;
+  --accent:#ff5c74; --accent-soft:#3a2329; --code-bg:#2b2d31; --good:#4cc38a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:17px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+html[data-lang="eu"] [data-l="en"], html[data-lang="en"] [data-l="eu"]{display:none !important}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--accent);text-underline-offset:3px}
+a:hover{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+
+/* header */
+header.top{border-bottom:1px solid var(--border)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px;gap:12px}
+.brand{font-weight:700;text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand svg{flex:none}
+.controls{display:flex;gap:6px;align-items:center}
+.btn{font:inherit;font-size:14px;background:none;border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:4px 10px;cursor:pointer;line-height:1.4}
+.btn[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon-btn{padding:4px 7px;display:inline-flex}
+
+/* article */
+main.wrap{padding-top:44px;padding-bottom:24px}
+h1{font-size:2.05rem;line-height:1.2;margin:0 0 10px;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:14px;margin-bottom:18px}
+.lede{font-size:1.12rem;color:var(--muted);margin:0 0 26px}
+h2{font-size:1.45rem;margin:52px 0 12px;line-height:1.3}
+h3{font-size:1.08rem;margin:28px 0 8px}
+p{margin:0 0 16px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 30px;padding:0;list-style:none}
+.tags li{font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:1px 10px;color:var(--muted)}
+.links{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 34px}
+.links a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border:1px solid var(--border);
+  border-radius:8px;padding:6px 12px;font-size:15px;background:var(--surface)}
+.links a:hover{border-color:var(--accent);color:inherit}
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;margin:30px 0}
+.toc strong{display:block;margin-bottom:4px}
+.toc ol{margin:0;padding-left:20px}
+
+/* samples */
+audio{width:100%;height:40px;display:block}
+.sample{border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin:0 0 14px;background:var(--bg)}
+.sample blockquote{margin:0 0 10px;padding:0 0 0 14px;border-left:3px solid var(--accent);font-size:1.05rem}
+.norm{display:block;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:4px}
+.label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.label.ft{color:var(--good)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.voice{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:0 0 18px}
+.voice .ref{background:var(--surface);padding:14px 18px;border-bottom:1px solid var(--border)}
+.voice .ref p{font-size:14px;color:var(--muted);margin:6px 0 0;font-style:italic}
+.voice .ref p.label{font-style:normal;margin:0 0 6px;font-size:12px}
+.label code{text-transform:none;font-weight:500}
+.voice .gen{padding:14px 18px;display:grid;gap:14px}
+.voice .gen p{margin:0 0 6px}
+.note{font-size:14px;color:var(--muted)}
+
+/* pipeline */
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:18px 0 8px;font-size:14px}
+.flow span.box{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 10px;white-space:nowrap}
+.flow span.box.hl{border-color:var(--accent);background:var(--accent-soft)}
+.flow .arrow{color:var(--muted)}
+ol.steps li{margin-bottom:6px}
+
+/* tables & code */
+.table-wrap{overflow-x:auto;margin:0 0 18px;border:1px solid var(--border);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{background:var(--surface);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.best td{font-weight:650}
+tr.best td.num:first-of-type{color:var(--good)}
+code{font-family:var(--mono);font-size:.88em;background:var(--code-bg);padding:1px 5px;border-radius:5px}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;overflow-x:auto;
+  font:13.5px/1.55 var(--mono);margin:0 0 18px}
+pre code{background:none;padding:0;font-size:inherit}
+ul,ol{padding-left:22px;margin:0 0 16px}
+li{margin-bottom:4px}
+
+footer{border-top:1px solid var(--border);margin-top:56px;padding:22px 0 40px;color:var(--muted);font-size:14px}
+footer p{margin:0 0 6px}
+
+@media (max-width:600px){
+  body{font-size:16px}
+  h1{font-size:1.6rem}
+  .pair{grid-template-columns:1fr}
+  .brand .long{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--accent)"/><path d="M7 18v-4M11 22V10M15 25V7M19 21v-10M23 18v-4" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Audio8-TTS <span class="long">&nbsp;· euskara</span>
+    </a>
+    <div class="controls">
+      <button class="btn" type="button" data-set-lang="eu" aria-pressed="true">Eu</button>
+      <button class="btn" type="button" data-set-lang="en" aria-pressed="false">En</button>
+      <button class="btn icon-btn" type="button" id="theme" aria-label="Gai iluna / argia — dark / light">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <article>
+    <h1>
+      <span data-l="eu">Audio8-TTS euskaraz: ahots-sintesia eta ahots-klonazioa 0.6B parametrorekin</span>
+      <span data-l="en">Audio8-TTS in Basque: speech synthesis and voice cloning in 0.6B parameters</span>
+    </h1>
+    <div class="meta">
+      <span data-l="eu">2026ko azaroaren 22a · 6 minutuko irakurketa</span>
+      <span data-l="en">November 22, 2026 · 6 min read</span>
+    </div>
+    <p class="lede">
+      <span data-l="eu">Audio8-TTS-Realistic-Air ereduari euskara irakatsi diogu: OpenSLR 76-ren 9 ordu inguruko grabazioekin egindako fine-tuning-a, GPU bakar batean, ordu laurden batean.</span>
+      <span data-l="en">We taught Basque to Audio8-TTS-Realistic-Air: a fine-tune on about 9 hours of OpenSLR 76 recordings, on a single GPU, in about a quarter of an hour.</span>
+    </p>
+    <ul class="tags" aria-label="tags">
+      <li>TTS</li><li>Euskara</li><li>Audio8</li><li>Voice cloning</li><li>OpenSLR</li><li>Fine-tuning</li>
+    </ul>
+    <div class="links">
+      <a href="https://huggingface.co/mikelalda/audio8-tts-eu">🤗 <span data-l="eu">Eredua</span><span data-l="en">Model</span></a>
+      <a href="https://github.com/mikelalda/TTS_basque">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span data-l="eu">Kodea</span><span data-l="en">Code</span></a>
+      <a href="https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air"><span data-l="eu">Oinarrizko eredua</span><span data-l="en">Base model</span></a>
+    </div>
+
+    <p data-l="eu"><a href="https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air">Audio8-TTS-Realistic-Air</a> 0.6B parametroko testu-ahots eredu trinkoa da: 23 hizkuntza, 44,1 kHz-eko audioa eta <em>zero-shot</em> ahots-klonazioa, segundo gutxiko grabazio batetik abiatuta. Euskara, ordea, ez dago hizkuntza horien artean. Proiektu honetan hizkuntza berri gisa irakatsi diogu, <a href="https://github.com/itzune/antzoki-tts">Antzoki-TTS</a>-ren datu-errezeta oinarritzat hartuta.</p>
+    <p data-l="en"><a href="https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air">Audio8-TTS-Realistic-Air</a> is a compact 0.6B text-to-speech model: 23 languages, 44.1 kHz audio and <em>zero-shot</em> voice cloning from a few seconds of recording. Basque is not one of its languages. In this project we taught it Basque as a new language, starting from the data recipe of <a href="https://github.com/itzune/antzoki-tts">Antzoki-TTS</a>.</p>
+
+    <div class="sample">
+      <blockquote>Donostiako zinemaldia 1953an sortu zen, eta urtero milaka ikusle erakartzen ditu.
+        <span class="norm">→ … mila bederatziehun eta berrogeita hamahiruan …</span></blockquote>
+      <audio controls preload="none" src="audio/ft/euf_07505_s04.mp3"></audio>
+    </div>
+    <div class="sample">
+      <blockquote>Mendira joan ginen, baina euria hasi zuen eta etxera itzuli behar izan genuen.</blockquote>
+      <audio controls preload="none" src="audio/ft/eum_01523_s05.mp3"></audio>
+    </div>
+    <p class="note" data-l="eu">Bi ahotsak entrenamenduan inoiz entzun ez dituen hiztunenak dira (beherago, <a href="#klonazioa">ahots-klonazioa</a>). Lagin gehienak behin bakarrik sortu dira, hazi finko batekin; bi lagin sei bertsiotik aukeratu ditugu, entzun ondoren. Hala ere, orrialde honetan ondo atera direnak erakusten ditugu: batzuk huts egiten dute, eta <a href="#mugak">Mugak</a> atalean kontatzen dugu zenbatetan.</p>
+    <p class="note" data-l="en">Both voices belong to speakers the model never heard during training (see <a href="#klonazioa">voice cloning</a> below). Most samples were generated once, with a fixed seed; two were picked from six takes after listening. Still, this page shows the ones that came out well: some generations fail, and the <a href="#mugak">Limitations</a> section says how often.</p>
+
+    <nav class="toc" aria-label="Aurkibidea / Contents">
+      <strong data-l="eu">Aurkibidea</strong><strong data-l="en">Contents</strong>
+      <ol>
+        <li><a href="#konparaketa"><span data-l="eu">Aurretik eta ondoren</span><span data-l="en">Before and after</span></a></li>
+        <li><a href="#klonazioa"><span data-l="eu">Ahots-klonazioa</span><span data-l="en">Voice cloning</span></a></li>
+        <li><a href="#nola"><span data-l="eu">Nola dabil?</span><span data-l="en">How does it work?</span></a></li>
+        <li><a href="#entrenamendua"><span data-l="eu">Entrenamendua</span><span data-l="en">Training</span></a></li>
+        <li><a href="#erabilera"><span data-l="eu">Erabilera</span><span data-l="en">Usage</span></a></li>
+        <li><a href="#mugak"><span data-l="eu">Mugak eta etorkizuna</span><span data-l="en">Limitations and future work</span></a></li>
+      </ol>
+    </nav>
+
+    <!-- ── Before / after ─────────────────────────────────────── -->
+    <h2 id="konparaketa"><span data-l="eu">Aurretik eta ondoren</span><span data-l="en">Before and after</span></h2>
+    <p data-l="eu">Esaldi bera eta ahots-erreferentzia bera: jatorrizko eredua ezkerrean, euskarara egokitutakoa eskuinean. Esaldi hauetako bat ere ez dago entrenamendu-datuetan.</p>
+    <p data-l="en">Same sentence and same reference voice: the original model on the left, the Basque fine-tune on the right. None of these sentences is in the training data.</p>
+
+    <div class="sample">
+      <blockquote>Kaixo, zer moduz zaude gaur? Aspaldi ez zaitudala ikusi.</blockquote>
+      <div class="pair">
+        <div><p class="label"><span data-l="eu">Jatorrizkoa</span><span data-l="en">Original</span></p><audio controls preload="none" src="audio/base/euf_07505_s00.mp3"></audio></div>
+        <div><p class="label ft">Fine-tune</p><audio controls preload="none" src="audio/ft/euf_07505_s00.mp3"></audio></div>
+      </div>
+    </div>
+    <div class="sample">
+      <blockquote>Euskara Europako hizkuntzarik zaharrenetakoa da, eta oraindik bizirik dirau.</blockquote>
+      <div class="pair">
+        <div><p class="label"><span data-l="eu">Jatorrizkoa</span><span data-l="en">Original</span></p><audio controls preload="none" src="audio/base/eum_01523_s02.mp3"></audio></div>
+        <div><p class="label ft">Fine-tune</p><audio controls preload="none" src="audio/ft/eum_01523_s02.mp3"></audio></div>
+      </div>
+    </div>
+    <div class="sample">
+      <blockquote>Ez dut uste hori egia denik; zergatik esan didazu halakorik?</blockquote>
+      <div class="pair">
+        <div><p class="label"><span data-l="eu">Jatorrizkoa</span><span data-l="en">Original</span></p><audio controls preload="none" src="audio/base/euf_07505_s03.mp3"></audio></div>
+        <div><p class="label ft">Fine-tune</p><audio controls preload="none" src="audio/ft/euf_07505_s03.mp3"></audio></div>
+      </div>
+    </div>
+    <div class="sample">
+      <blockquote>Liburutegiak ehun eta berrogei liburu berri jaso ditu aste honetan.</blockquote>
+      <div class="pair">
+        <div><p class="label"><span data-l="eu">Jatorrizkoa</span><span data-l="en">Original</span></p><audio controls preload="none" src="audio/base/eum_01523_s06.mp3"></audio></div>
+        <div><p class="label ft">Fine-tune</p><audio controls preload="none" src="audio/ft/eum_01523_s06.mp3"></audio></div>
+      </div>
+    </div>
+
+    <!-- ── Voice cloning ──────────────────────────────────────── -->
+    <h2 id="klonazioa"><span data-l="eu">Ahots-klonazioa</span><span data-l="en">Voice cloning</span></h2>
+    <p data-l="eu">Ereduari grabazio labur bat eta haren transkripzioa ematen zaizkio, eta ahots horrekin hitz egiten du. Bi hiztun hauek ebaluaziorako gorde ziren: eredua ez da inoiz haien grabazioekin entrenatu.</p>
+    <p data-l="en">The model receives a short recording and its transcript, and speaks with that voice. These two speakers were held out for evaluation: the model was never trained on their recordings.</p>
+
+    <div class="voice">
+      <div class="ref">
+        <p class="label"><span data-l="eu">Erreferentzia · emakumea</span><span data-l="en">Reference · female</span> (OpenSLR 76, <code>euf_07505</code>)</p>
+        <audio controls preload="none" src="audio/ref/euf_07505.mp3"></audio>
+        <p>«Ernesto Valverderi Txingurri goitizena jarri zioten futbolean jokatzeko eragatik»</p>
+      </div>
+      <div class="gen">
+        <div><p>Bihar goizean, zortzietan, Bilboko geltokian elkartuko gara.</p><audio controls preload="none" src="audio/ft/euf_07505_s01.mp3"></audio></div>
+        <div><p>Ene bada! Hau bai sorpresa polita!</p><audio controls preload="none" src="audio/ft/euf_07505_s07.mp3"></audio></div>
+      </div>
+    </div>
+    <div class="voice">
+      <div class="ref">
+        <p class="label"><span data-l="eu">Erreferentzia · gizona</span><span data-l="en">Reference · male</span> (OpenSLR 76, <code>eum_01523</code>)</p>
+        <audio controls preload="none" src="audio/ref/eum_01523.mp3"></audio>
+        <p>«Bartzelonako aireportura iritsi da bart Lionel Messi haren familiarekin hegaldi pribatuan»</p>
+      </div>
+      <div class="gen">
+        <div><p>Bihar goizean, zortzietan, Bilboko geltokian elkartuko gara.</p><audio controls preload="none" src="audio/ft/eum_01523_s01.mp3"></audio></div>
+        <div><p>Ez dut uste hori egia denik; zergatik esan didazu halakorik?</p><audio controls preload="none" src="audio/ft/eum_01523_s03.mp3"></audio></div>
+      </div>
+    </div>
+
+    <h3><span data-l="eu">Zer konpon dezake erreferentziak?</span><span data-l="en">What can a reference fix?</span></h3>
+    <p data-l="eu">Erreferentziak ez du ahotsa bakarrik transmititzen: erritmoa eta ahoskera ere bai. Ondo aukeratuta, akats batzuk zuzentzen ditu, baina ez guztiak. Batzuk neurtu ditugu; besteak hipotesiak dira, oraindik probatzeko.</p>
+    <p data-l="en">A reference carries more than the voice: it also carries pace and pronunciation. A well-chosen one fixes some errors, but not all of them. We measured some of these effects; the others are hypotheses still to be tested.</p>
+    <div class="table-wrap" data-l="eu"><table>
+      <thead><tr><th>Akatsa</th><th>Erreferentziak lagun dezake?</th></tr></thead>
+      <tbody>
+        <tr><td>Kontroletik kanpoko sorkuntzak</td><td><strong>Bai</strong> (neurtua): % 3 erreferentziarekin, % 12 gabe. Isilune luzerik gabeko irakurketa jarraitu batek laguntzen du.</td></tr>
+        <tr><td>Abiadura</td><td><strong>Bai</strong> (neurtua): erreferentziaren erritmoaren % 60–75 kopiatzen du.</td></tr>
+        <tr><td>Azentua eta ahoskera</td><td><strong>Neurri batean</strong> (hipotesia): erreferentzian entzuten dituen soinuak errazago errepikatzen ditu.</td></tr>
+        <tr><td>Hitz jakin bat (izen arrotzak, <em>Antton</em>…)</td><td><strong>Batzuetan</strong> (proba txikia): <em>Antton</em> erreferentzian zegoela, 3 bertsiotatik 1 atera zen ondo; erreferentzian ez zegoela, bat ere ez. Idazkera aldatzeak (<em>Antyon</em>, <em>Antxon</em>) ez zuen lagundu.</td></tr>
+        <tr><td>Siglak eta zenbakiak (<code>U2</code>, <code>AP-68</code>)</td><td><strong>Ez</strong>: testuaren arazoa da. Idatzi hitzez testuan bertan.</td></tr>
+        <tr><td>Esaldi luzeak edo adierazkorrak</td><td><strong>Ez</strong>: datu falta da. Zatitu esaldi laburragotan.</td></tr>
+      </tbody>
+    </table></div>
+    <div class="table-wrap" data-l="en"><table>
+      <thead><tr><th>Error</th><th>Can a reference help?</th></tr></thead>
+      <tbody>
+        <tr><td>Runaway generations</td><td><strong>Yes</strong> (measured): 3% with a reference, 12% without one. A continuous reading without long pauses helps.</td></tr>
+        <tr><td>Speed</td><td><strong>Yes</strong> (measured): the model copies 60–75% of the reference's pace.</td></tr>
+        <tr><td>Accent and pronunciation</td><td><strong>Partly</strong> (hypothesis): sounds it hears in the reference are easier for it to repeat.</td></tr>
+        <tr><td>A specific word (foreign names, <em>Antton</em>…)</td><td><strong>Sometimes</strong> (small test): with <em>Antton</em> in the reference, 1 take out of 3 came out right; without it, none did. Respelling it (<em>Antyon</em>, <em>Antxon</em>) did not help.</td></tr>
+        <tr><td>Acronyms and numbers (<code>U2</code>, <code>AP-68</code>)</td><td><strong>No</strong>: this is a text problem. Spell them out in the input text.</td></tr>
+        <tr><td>Long or expressive sentences</td><td><strong>No</strong>: this comes from missing data. Split them into shorter sentences.</td></tr>
+      </tbody>
+    </table></div>
+    <p data-l="eu"><strong>Erreferentzia ona:</strong> 6–9 segundoko esaldi bakarra, jarraian irakurria; euskarako soinu zailak dituena (z / s / x, tz / ts / tx, r / rr, j); zenbakirik, siglarik eta izen arrotzik gabe; transkripzio zehatzarekin; eta irteeran nahi duzun abiaduran eta erregistroan irakurria. Adibidez:</p>
+    <p data-l="en"><strong>A good reference</strong> is a single sentence of 6–9 seconds, read continuously. It has the hard Basque sounds (z / s / x, tz / ts / tx, r / rr, j), contains no numbers, acronyms or foreign names, comes with an exact transcript, and is read at the pace and in the register you want in the output. For example:</p>
+    <blockquote>Gaur goizean, zazpiak eta erdietan, txakurra hartu eta itsasertzera joan naiz, eta haizeak gogor jotzen zuen.</blockquote>
+    <p class="note" data-l="eu">Hitz jakin bat gaizki ahoskatzen badu, sartu hitz hori erreferentzian eta sortu hainbat bertsio, ez baita beti ondo ateratzen. Euskarazko <em>tt</em> soinua (<em>Antton</em>, <em>pottoka</em>) ia ez dago entrenamendu-datuetan, eta ereduak ez du ikasi. Esaterako: «Antton eta Itziar atzo etorri ziren gurera, eta arratsalde osoa elkarrekin pasatu genuen.»</p>
+    <p class="note" data-l="en">If the model mispronounces a specific word, put that word in the reference and generate several takes, because it does not always come out right. The Basque <em>tt</em> sound (<em>Antton</em>, <em>pottoka</em>) is almost absent from the training data, and the model has not learned it. For example: «Antton eta Itziar atzo etorri ziren gurera, eta arratsalde osoa elkarrekin pasatu genuen.»</p>
+    <div class="voice">
+      <div class="ref">
+        <p class="label"><span data-l="eu">Erreferentzia, «Antton» barne</span><span data-l="en">Reference, with «Antton»</span> (OpenSLR 76, <code>eum_02484</code>)</p>
+        <audio controls preload="none" src="audio/antton/ref.mp3"></audio>
+        <p>«Antton Valverdek Xabier Leterekin abestu du eta Lizardiren eta Lauaxetaren olerkiak musikatu ditu»</p>
+      </div>
+      <div class="gen">
+        <div><p><span data-l="eu">✓ Ondo, erreferentzia horrekin (3 bertsiotatik 1):</span><span data-l="en">✓ Right, with that reference (1 take out of 3):</span> Antton izen zaila da esateko, baina lortuko dugu ongi esatea.</p><audio controls preload="none" src="audio/antton/ok.mp3"></audio></div>
+        <div><p><span data-l="eu">✗ Gaizki, «Antton» gabeko erreferentziarekin (<code>eum_01523</code>):</span><span data-l="en">✗ Wrong, with a reference without «Antton» (<code>eum_01523</code>):</span> Antton izen zaila da esateko, baina lortuko dugu ongi esatea.</p><audio controls preload="none" src="audio/antton/bad.mp3"></audio></div>
+      </div>
+    </div>
+
+    <h3><span data-l="eu">Erreferentziarik gabe</span><span data-l="en">Without a reference</span></h3>
+    <p data-l="eu">Erreferentziarik ematen ez bada, ereduak berak aukeratzen du ahotsa. Modu hau da ahulena: gure probetan zortzi saiakeratik batean inguru sorkuntza kontroletik atera zen (jatorrizko ereduak ere badu arazo hau), eta abiadura ere asko aldatzen da saiakera batetik bestera (ikus <a href="#mugak">Mugak</a>). Saiakera bakoitzak ahots desberdina du.</p>
+    <p data-l="en">Without a reference, the model picks a voice on its own. This is the weakest mode: in our tests, about one generation in eight went off the rails (the original model has the same problem), and the pace also varies a lot from one take to the next (see <a href="#mugak">Limitations</a>). Each take has a different voice.</p>
+    <div class="sample">
+      <blockquote>Bihar goizean, zortzietan, Bilboko geltokian elkartuko gara.</blockquote>
+      <audio controls preload="none" src="audio/ft/noref_s01.mp3"></audio>
+    </div>
+    <div class="sample">
+      <blockquote>Euskara Europako hizkuntzarik zaharrenetakoa da, eta oraindik bizirik dirau.</blockquote>
+      <audio controls preload="none" src="audio/ft/noref_s02.mp3"></audio>
+    </div>
+
+    <!-- ── How it works ───────────────────────────────────────── -->
+    <h2 id="nola"><span data-l="eu">Nola dabil?</span><span data-l="en">How does it work?</span></h2>
+    <div class="flow" aria-hidden="true">
+      <span class="box">Testua / Text</span><span class="arrow">→</span>
+      <span class="box hl">eu_normalize</span><span class="arrow">→</span>
+      <span class="box">Slow AR · 24</span><span class="arrow">→</span>
+      <span class="box">Fast AR · 10 codebooks</span><span class="arrow">→</span>
+      <span class="box">Codec · 44.1 kHz</span><span class="arrow">→</span>
+      <span class="box">🔊</span>
+    </div>
+    <p class="note" data-l="eu">Erreferentzia (aukerakoa): audioa + transkripzioa, prompt-aren hasieran.</p>
+    <p class="note" data-l="en">Reference (optional): audio + transcript, at the start of the prompt.</p>
+
+    <ol class="steps" data-l="eu">
+      <li><strong>Normalizazioa.</strong> Zenbakiak hitz bihurtzen dira, zifrari itsatsitako deklinabide-atzizkia gordeta: <code>1953an</code> → <em>mila bederatziehun eta berrogeita hamahiruan</em>, <code>1950eko</code> → <em>… berrogeita hamarreko</em>. Ereduak testua BPE token gisa irakurtzen du, fonemarik gabe; beraz, entrenamenduan eta inferentzian testu-forma bera erabili behar da.</li>
+      <li><strong>Eredu motela</strong> (24 geruzako <em>transformer</em> autoerregresiboa) testua irakurri eta audio-token semantikoak sortzen ditu, segundoko 21,5 inguru.</li>
+      <li><strong>Eredu azkarrak</strong> (4 geruza) token bakoitzeko 10 kodebook-en kodeak osatzen ditu.</li>
+      <li><strong>Kodekak</strong> kode horiek 44,1 kHz-eko uhin bihurtzen ditu.</li>
+    </ol>
+    <ol class="steps" data-l="en">
+      <li><strong>Normalization.</strong> Numbers become words, and the case suffix attached to the digits is kept: <code>1953an</code> → <em>mila bederatziehun eta berrogeita hamahiruan</em>, <code>1950eko</code> → <em>… berrogeita hamarreko</em>. The model reads text as BPE tokens, with no phonemes, so training and inference must use the same written form.</li>
+      <li>The <strong>slow model</strong> (a 24-layer autoregressive transformer) reads the text and generates semantic audio tokens, about 21.5 per second.</li>
+      <li>The <strong>fast model</strong> (4 layers) fills in the codes of the 10 codebooks for each token.</li>
+      <li>The <strong>codec</strong> turns those codes into a 44.1 kHz waveform.</li>
+    </ol>
+    <p data-l="eu">Klonazioan, erreferentzia-audioa eta haren transkripzioa prompt-aren hasieran sartzen dira; ereduak ahots horrekin jarraitzen du testu berria. Antzoki-TTS-k ez bezala, ez dago agertoki-oharrik edo emozio-kontrolik: Audio8 testu-ahots eredu “klasikoa” da, txikia eta azkarra.</p>
+    <p data-l="en">For cloning, the reference audio and its transcript go at the start of the prompt, and the model continues the new text in that voice. Unlike Antzoki-TTS, there are no stage directions or emotion controls: Audio8 is a “classic” text-to-speech model, small and fast.</p>
+
+    <!-- ── Training ───────────────────────────────────────────── -->
+    <h2 id="entrenamendua"><span data-l="eu">Entrenamendua</span><span data-l="en">Training</span></h2>
+    <p data-l="eu">Antzoki-TTS-k bezala, <a href="https://www.openslr.org/76/">OpenSLR 76</a> erabili dugu: boluntarioek irakurritako 7.136 esaldi, 52 hiztun (29 emakume, 23 gizon). Grabazio bakoitzak 2,2 segundo isilune ditu batez beste; isiluneak moztuta, ~14 orduak <strong>9,4 ordu</strong> ahots bihurtzen dira.</p>
+    <p data-l="en">Like Antzoki-TTS, we used <a href="https://www.openslr.org/76/">OpenSLR 76</a>: 7,136 sentences read by volunteers, 52 speakers (29 female, 23 male). Each recording carries about 2.2 seconds of silence on average; once it is trimmed, the nominal ~14 hours become <strong>9.4 hours</strong> of speech.</p>
+
+    <div class="table-wrap"><table>
+      <tbody data-l="eu">
+        <tr><th>Audioa</th><td>isiluneak moztu, 44,1 kHz-era birlagindu, −20 LUFS (gailurra −1 dBFS)</td></tr>
+        <tr><th>Iragazkiak</th><td>abiadura arraroko 44 esaldi baztertu (testua ≠ audioa) → 7.092 esaldi</td></tr>
+        <tr><th>Ebaluazioa</th><td>2 hiztun osorik gorde (<code>euf_07505</code>, <code>eum_01523</code>), 200 esaldi</td></tr>
+        <tr><th>Klonazioa</th><td>entrenamenduko esaldien % 61, hiztun beraren beste esaldi bat erreferentzia gisa</td></tr>
+        <tr><th>Metodoa</th><td>eredu motela entrenatu, eredu azkarra izoztuta (534M / 601M parametro), bf16, DeepSpeed ZeRO-2</td></tr>
+        <tr><th>Hiperparametroak</th><td>lr 1e-5 (cosine), 2 epoch, batch eraginkorra 16, 852 urrats; 800. urratseko checkpoint-a (galera onena)</td></tr>
+        <tr><th>Hardwarea</th><td>RTX 5090 Laptop bat (24 GB) · ~13 minutu · ~21 GB VRAM</td></tr>
+      </tbody>
+      <tbody data-l="en">
+        <tr><th>Audio</th><td>silence trimmed, resampled to 44.1 kHz, −20 LUFS (−1 dBFS peak)</td></tr>
+        <tr><th>Filtering</th><td>44 sentences dropped for an odd speaking rate (text ≠ audio) → 7,092 sentences</td></tr>
+        <tr><th>Evaluation</th><td>2 speakers held out entirely (<code>euf_07505</code>, <code>eum_01523</code>), 200 sentences</td></tr>
+        <tr><th>Cloning</th><td>61% of training sentences paired with another sentence by the same speaker as the reference</td></tr>
+        <tr><th>Method</th><td>slow model trained, fast model frozen (534M / 601M parameters), bf16, DeepSpeed ZeRO-2</td></tr>
+        <tr><th>Hyper-parameters</th><td>lr 1e-5 (cosine), 2 epochs, effective batch 16, 852 steps; checkpoint from step 800 (best loss)</td></tr>
+        <tr><th>Hardware</th><td>one RTX 5090 Laptop (24 GB) · ~13 minutes · ~21 GB VRAM</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3><span data-l="eu">Emaitzak</span><span data-l="en">Results</span></h3>
+    <p data-l="eu">Galera, ikusi gabeko bi hiztunen gainean (zenbat eta txikiagoa, hobe). <em>Slow</em> galerak edukia eta prosodia neurtzen ditu; <em>fast</em> galerak, xehetasun akustikoak.</p>
+    <p data-l="en">Loss on the two unseen speakers (lower is better). The <em>slow</em> loss measures content and prosody; the <em>fast</em> loss measures acoustic detail.</p>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th><span data-l="eu">Eredua</span><span data-l="en">Model</span></th>
+        <th class="num">eval loss</th><th class="num">slow</th><th class="num">fast</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><span data-l="eu">Jatorrizkoa (fine-tuning gabe)</span><span data-l="en">Original (no fine-tune)</span></td><td class="num">12.73</td><td class="num">5.42</td><td class="num">7.31</td></tr>
+        <tr><td><span data-l="eu">1. saiakera, amaiera (lr 2e-5, 6 epoch)</span><span data-l="en">Run 1, final (lr 2e-5, 6 epochs)</span></td><td class="num">10.70</td><td class="num">5.17</td><td class="num">5.53</td></tr>
+        <tr><td><span data-l="eu">1. saiakera, onena (250. urratsa)</span><span data-l="en">Run 1, best (step 250)</span></td><td class="num">9.17</td><td class="num">3.84</td><td class="num">5.34</td></tr>
+        <tr><td><span data-l="eu">2. saiakera (lr 1e-5, 2 epoch)</span><span data-l="en">Run 2 (lr 1e-5, 2 epochs)</span></td><td class="num">9.09</td><td class="num">3.80</td><td class="num">5.29</td></tr>
+        <tr class="best"><td><span data-l="eu">4. saiakera (2.a + eredu azkarra izoztuta) · <strong>argitaratua</strong></span><span data-l="en">Run 4 (run 2 + fast model frozen) · <strong>released</strong></span></td><td class="num">9.19</td><td class="num">3.81</td><td class="num">5.38</td></tr>
+      </tbody>
+    </table></div>
+    <p data-l="eu">Lehen saiakerak lehen epoch-ean ikasi zuen ia dena, eta gero <strong>gainegokitu</strong> egin zuen: OpenSLR 76-n esaldi berak hiztun askok irakurtzen dituzte, eta ereduak buruz ikasten zituen. Bigarren saiakera laburragoa eta leunagoa da, eta ebaluazioko galera onena duen checkpoint-a gordetzen du.</p>
+    <p data-l="eu">Laugarren saiakeran, bigarrenaren ezarpen berberekin, eredu azkarra (xehetasun akustikoak) jatorrizkoa utzi dugu, eta eredu motela bakarrik entrenatu. <em>Fast</em> galera pixka bat okerragoa da, baina entzunda eta neurtuta ia berdinak dira, eta klonazioarekin hondatutako sorkuntza gutxiago eman ditu. Horregatik argitaratu dugu hau.</p>
+    <p data-l="en">The first run learned almost everything in its first epoch and then <strong>overfit</strong>: in OpenSLR 76 many speakers read the same sentences, and the model was memorizing them. The second run is shorter and gentler, and keeps the checkpoint with the best evaluation loss.</p>
+    <p data-l="en">The fourth run uses the same settings as the second, but keeps the original fast model (acoustic detail) frozen and trains only the slow model. Its <em>fast</em> loss is slightly worse, but the two sound and measure almost the same, and run 4 produced fewer broken generations when cloning. That is why we released it.</p>
+
+    <!-- ── Usage ──────────────────────────────────────────────── -->
+    <h2 id="erabilera"><span data-l="eu">Erabilera</span><span data-l="en">Usage</span></h2>
+    <p data-l="eu">Python 3.10+ eta CUDA GPU bat (~3 GB VRAM nahikoa inferentziarako). Erabili beti <code>eu_normalize.normalize()</code> testua ereduari eman aurretik.</p>
+    <p data-l="en">Python 3.10+ and a CUDA GPU (about 3 GB of VRAM is enough for inference). Always run the text through <code>eu_normalize.normalize()</code> before you give it to the model.</p>
+<pre><code>git clone https://github.com/Edge0-AI/Audio8_TTS && cd Audio8_TTS
+pip install -r requirements.txt
+hf download mikelalda/audio8-tts-eu eu_normalize.py --local-dir .
+
+TEXT=$(python -c 'from eu_normalize import normalize; print(normalize("Donostiako zinemaldia 1953an sortu zen."))')
+
+python audio8_tts_infer.py \
+  --model mikelalda/audio8-tts-eu \
+  --text "$TEXT" \
+  --reference-audio erreferentzia.wav \
+  --reference-text "Erreferentziako grabazioaren transkripzio zehatza." \
+  --output irteera.wav</code></pre>
+    <p class="note" data-l="eu">Erreferentziarik gabe sortzeko, kendu <code>--reference-audio</code> eta <code>--reference-text</code>. Esaldi bakoitzak 150 karaktere baino gutxiago izan ditzala.</p>
+    <p class="note" data-l="en">To generate without a reference, drop <code>--reference-audio</code> and <code>--reference-text</code>. Keep each input under 150 characters.</p>
+
+    <!-- ── Limitations ────────────────────────────────────────── -->
+    <h2 id="mugak"><span data-l="eu">Mugak eta etorkizuna</span><span data-l="en">Limitations and future work</span></h2>
+    <ul data-l="eu">
+      <li><strong>Batzuetan sorkuntza kontroletik ateratzen da</strong>: esaldi labur batek 15–20 segundo irauten ditu, isilune luzeekin edo esanahirik gabeko soinuekin. Gure probetan (8 esaldi, 8 hazi, 192 sorkuntza), erreferentziarekin % 3an gertatu da, eta erreferentziarik gabe % 12an. Jatorrizko ereduak ere badu arazo hau (% 6 / % 8): ez du fine-tuning-ak sortu. Saihesteko modu sinple bat: iraupena testuaren luzerarekiko zentzugabea bada, hazi berri batekin berriro sortu.</li>
+      <li><strong>Ez dago abiadura-kontrolik.</strong> Klonatzean, ereduak erreferentziaren erritmoa kopiatzen du neurri handi batean: astiro irakurritako erreferentzia batek irteera motelagoa ematen du. Erreferentziarik gabe, abiadura asko aldatzen da hazi batetik bestera; hainbat saiakera sortu eta abiadura egokiena duena aukeratzea da irtenbiderik errazena.</li>
+      <li><strong>Klonazioa apur bat ahulagoa da</strong> jatorrizko ereduarena baino: hiztun-antza (WavLM, 0–1) 0,968tik 0,957ra jaisten da. Hori da euskarazko ahoskeraren truke ordaintzen den prezioa.</li>
+      <li><strong>Datu gutxi eta mota bakarrekoak.</strong> 9 ordu esaldi irakurri eta neutro: hizketa espontaneoa, adierazkorra edo esaldi luzeak ez dira hain ondo ateratzen.</li>
+      <li><strong>Siglak eta izen alfanumerikoak</strong> (<code>U2</code>, <code>AP-68</code>) euskarazko zifrekin irakurtzen ditu; atzerriko izenen ahoskera ere ez da beti zuzena.</li>
+      <li><strong>Ebaluazioa galera da</strong>, ez entzumen-proba sistematikoa. Hurrengo pausoak: ASR bidezko CER neurtzea eta datu gehiago eta askotarikoak gehitzea (Common Voice, irratia, ipuin-kontaketak).</li>
+      <li><strong>Erabilera arduratsua.</strong> Ahots-klonazioak benetako pertsonak imita ditzake. Ez klonatu inoren ahotsik haren baimenik gabe, eta ez erabili eredua inor iruzurtzeko.</li>
+    </ul>
+    <ul data-l="en">
+      <li><strong>Generation sometimes goes off the rails</strong>: a short sentence lasts 15–20 seconds, with long silences or meaningless sounds. In our tests (8 sentences, 8 seeds, 192 generations) this happened 3% of the time with a reference and 12% of the time without one. The original model has the same problem (6% / 8%): the fine-tune did not cause it. A simple workaround: if the duration makes no sense for the length of the text, generate again with a new seed.</li>
+      <li><strong>There is no speed control.</strong> When cloning, the model largely copies the reference's pace: a reference read slowly gives slower output. Without a reference, the pace varies a lot from seed to seed; the easiest fix is to generate several takes and keep the one with the right pace.</li>
+      <li><strong>Cloning is slightly weaker</strong> than with the original model: speaker similarity (WavLM, 0–1) drops from 0.968 to 0.957. That is the price paid for Basque pronunciation.</li>
+      <li><strong>Little data, of one kind only.</strong> 9 hours of neutral read sentences: spontaneous or expressive speech and long sentences come out less well.</li>
+      <li><strong>Acronyms and alphanumeric names</strong> (<code>U2</code>, <code>AP-68</code>) are read with Basque digit names, and foreign names are not always pronounced correctly.</li>
+      <li><strong>The evaluation is a loss</strong>, not a systematic listening test. Next steps: measure CER with an ASR model, and add more and more varied data (Common Voice, radio, storytelling).</li>
+      <li><strong>Responsible use.</strong> Voice cloning can imitate real people. Do not clone anyone's voice without their consent, and do not use the model to deceive anyone.</li>
+    </ul>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p data-l="eu">Eredua eta kodea: Apache-2.0 · Datuak: <a href="https://www.openslr.org/76/">OpenSLR 76</a> (Google, CC BY-SA 4.0; Kjartansson et al., 2020) · Oinarrizko eredua: <a href="https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air">Edge0/Audio8-TTS-Realistic-Air</a> · Datu-errezeta: <a href="https://github.com/itzune/antzoki-tts">itzune/antzoki-tts</a></p>
+    <p data-l="en">Model and code: Apache-2.0 · Data: <a href="https://www.openslr.org/76/">OpenSLR 76</a> (Google, CC BY-SA 4.0; Kjartansson et al., 2020) · Base model: <a href="https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air">Edge0/Audio8-TTS-Realistic-Air</a> · Data recipe: <a href="https://github.com/itzune/antzoki-tts">itzune/antzoki-tts</a></p>
+    <p>© 2026 Mikel Aldalur</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  function setLang(lang) {
+    root.setAttribute('data-lang', lang);
+    root.setAttribute('lang', lang);
+    document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-set-lang') === lang));
+    });
+    document.title = lang === 'en' ? 'Audio8-TTS in Basque' : 'Audio8-TTS euskaraz';
+  }
+  var q = new URLSearchParams(location.search).get('lang');
+  setLang(q === 'en' || q === 'eu' ? q : (read('lang') || 'eu'));
+  document.querySelectorAll('[data-set-lang]').forEach(function (b) {
+    b.addEventListener('click', function () { var l = b.getAttribute('data-set-lang'); setLang(l); store('lang', l); });
+  });
+
+  var saved = read('theme');
+  if (saved) root.setAttribute('data-theme', saved);
+  document.getElementById('theme').addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = dark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next); store('theme', next);
+  });
+
+  // one player at a time
+  document.addEventListener('play', function (e) {
+    document.querySelectorAll('audio').forEach(function (a) { if (a !== e.target) a.pause(); });
+  }, true);
+})();
+</script>
+</body>
+</html>

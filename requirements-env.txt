@@ -1,0 +1,29 @@
+# Dependencias Python del proyecto TTS_basque (fine-tuning de Audio8_TTS en euskera).
+# PyTorch/torchaudio NO van aquí: setup_env.sh los instala primero desde el índice CUDA
+# y constraints-env.txt impide que este archivo los cambie.
+
+# ── Audio8_TTS (requirements.txt + requirements-train.txt) ───────────────────
+transformers==4.57.3          # versión con la que se exportó el checkpoint Realistic-Air (<5 obligatorio)
+numpy>=1.26
+soundfile>=0.12
+safetensors>=0.4
+tqdm>=4.66
+accelerate>=1.10,<2
+tensorboard>=2.16
+# deepspeed se instala aparte (sdist, necesita torch ya instalado y --no-build-isolation)
+
+# ── Hugging Face Hub (transformers 4.57 exige huggingface_hub<1.0) ────────────
+huggingface_hub[hf_xet]>=0.34,<1.0
+
+# ── Preprocesado de audio/texto (inspirado en antzoki-tts / DramaBox) ─────────
+librosa>=0.10.2
+pyloudnorm>=0.1.1             # normalización de sonoridad (LUFS) del dataset
+phonemizer>=3.3               # backend espeak-ng (voz "eu"); sólo análisis/G2P, ningún pipeline lo exige
+pandas>=2.1
+PyYAML>=6.0
+einops>=0.7
+peft>=0.13                    # por si se quiere LoRA en lugar de SFT completo
+jiwer>=3.0                    # WER/CER para evaluar con ASR
+
+# ── Utilidades ───────────────────────────────────────────────────────────────
+pytest>=8

@@ -1,0 +1,7 @@
+# Fija el stack de PyTorch para que ninguna dependencia lo actualice/degrade.
+# torch 2.8.0 + cu128: mínimo que soporta Blackwell (sm_120, RTX 5090) y es la versión
+# exacta que fija DramaBox (antzoki-tts). Audio8 sólo pide >=2.5.
+# torchaudio 2.8 aún trae load()/save() clásicos (en 2.9 pasan a depender de torchcodec).
+torch==2.8.0
+torchaudio==2.8.0
+transformers==4.57.3

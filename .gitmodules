@@ -1,0 +1,6 @@
+[submodule "repos/Audio8_TTS"]
+	path = repos/Audio8_TTS
+	url = https://github.com/Edge0-AI/Audio8_TTS.git
+[submodule "repos/antzoki-tts"]
+	path = repos/antzoki-tts
+	url = https://github.com/itzune/antzoki-tts.git
