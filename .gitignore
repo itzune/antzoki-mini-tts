@@ -36,6 +36,6 @@ runs/
 .claude/settings.local.json
 
 # llama.cpp (Audio8 patch) and GGUF bundles
-vendor/
-gguf/
-.venv-gguf/
+/vendor/
+/gguf/
+/.venv-gguf/

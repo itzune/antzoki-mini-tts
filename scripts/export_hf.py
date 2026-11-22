@@ -2,8 +2,9 @@
 """Build a Hugging Face–ready folder from a trained checkpoint.
 
     python scripts/export_hf.py --checkpoint checkpoints/audio8_eu_sft_v4/export \
-        --repo-id <user>/audio8-tts-eu --run checkpoints/audio8_eu_sft_v4 \
-        --samples noref_s01 noref_s02 --github https://github.com/<user>/TTS_basque
+        --repo-id itzune/antzoki-mini-tts --run checkpoints/audio8_eu_sft_v4 \
+        --samples noref_s01 noref_s02 --github https://github.com/itzune/antzoki-mini-tts \
+        --gguf-repo itzune/antzoki-mini-tts-GGUF
 
 Output: hf_release/<repo-name>/  (git-ignored)
   model weights + codec + remote code + tokenizer/processor   (loadable with AutoModel/AutoProcessor)
@@ -121,7 +122,7 @@ sf.write("out.wav", wav[0, : int(lengths[0])].float().cpu().numpy(), model.confi
 
 Or with the CLI from the Audio8 repo:
 `python audio8_tts_infer.py --model {repo_id} --text "..." [--reference-audio ref.wav --reference-text "..."] --output out.wav`
-
+{gguf}
 **Always normalize the text with `eu_normalize.normalize()`.** The model never saw digits
 during training: numbers become Basque words that keep their case suffix
 (`2008an` → `bi mila eta zortzian`, `1950eko` → `mila bederatziehun eta berrogeita hamarreko`).
@@ -183,10 +184,11 @@ and then overfit: OpenSLR 76 has many speakers reading the same sentences. {rele
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--checkpoint", type=Path, required=True, help="checkpoint-N/ or export/ directory")
-    ap.add_argument("--repo-id", required=True, help="e.g. user/audio8-tts-eu")
+    ap.add_argument("--repo-id", required=True, help="e.g. itzune/antzoki-mini-tts")
     ap.add_argument("--run", type=Path, help="run dir (reads run_config.env and eval_loss_compare.json)")
     ap.add_argument("--stats", type=Path, default=ROOT / "dataset_processed" / "openslr76" / "sft" / "stats.json")
     ap.add_argument("--github", default="", help="URL of this project's GitHub repo, for the card")
+    ap.add_argument("--gguf-repo", default="", help="HF repo with the llama.cpp GGUF build, linked from the card")
     ap.add_argument("--n-samples", type=int, default=3)
     ap.add_argument("--samples", nargs="+", help="listen/ stems to include (default: first --n-samples noref_*)")
     ap.add_argument("--robustness", type=Path, default=ROOT / "checkpoints" / "robustness" / "summary.json")
@@ -301,6 +303,8 @@ def main() -> int:
         eval_rows=stats.get("eval", {}).get("rows", "?"),
         hparams=hp or "see run_config.env",
         github=args.github or "_(add the GitHub URL with --github)_",
+        gguf=(f"\nCPU without Python or GPU: the llama.cpp GGUF build (Q4_K_M) is in "
+              f"[{args.gguf_repo}](https://huggingface.co/{args.gguf_repo}).\n") if args.gguf_repo else "",
         audio8_commit=git_commit(ROOT / "repos" / "Audio8_TTS"),
         metrics=metrics_table(metrics, ckpt), samples=samples_md,
     )

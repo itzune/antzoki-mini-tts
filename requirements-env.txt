@@ -1,4 +1,4 @@
-# Dependencias Python del proyecto TTS_basque (fine-tuning de Audio8_TTS en euskera).
+# Dependencias Python del proyecto antzoki-mini-tts (fine-tuning de Audio8_TTS en euskera).
 # PyTorch/torchaudio NO van aquí: setup_env.sh los instala primero desde el índice CUDA
 # y constraints-env.txt impide que este archivo los cambie.
 

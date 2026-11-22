@@ -1,4 +1,4 @@
-# TTS_basque — fine-tuning Audio8-TTS for Basque (euskara)
+# antzoki-mini-tts — fine-tuning Audio8-TTS for Basque (euskara)
 
 This project fine-tunes [Audio8-TTS-Realistic-Air](https://huggingface.co/Edge0/Audio8-TTS-Realistic-Air)
 (0.6B, zero-shot voice cloning, 44.1 kHz) for Basque, a language the base model does not support.
@@ -35,7 +35,7 @@ dataset_raw/ dataset_processed/ checkpoints/   git-ignored; rebuilt by the scrip
 ## Quick start
 
 ```bash
-git clone --recurse-submodules <this-repo> && cd TTS_basque
+git clone --recurse-submodules <this-repo> && cd antzoki-mini-tts
 bash setup_env.sh                       # asks for sudo to install ffmpeg, sox, espeak-ng, libsndfile
 source scripts/env.sh
 python verify_env.py --run-tests
@@ -273,12 +273,12 @@ uv pip install --python .venv-gguf/bin/python --index-url https://download.pytor
 uv pip install --python .venv-gguf/bin/python numpy==1.26.4 safetensors==0.5.3 PyYAML==6.0.3
 
 # convert (F32 bundle, 3.6 GB) and quantize the two AR models
-.venv-gguf/bin/python scripts/gguf/convert_eu.py --model hf_release/audio8-tts-eu --out gguf/audio8-tts-eu-f32
-bash scripts/gguf/quantize_eu.sh gguf/audio8-tts-eu-f32 Q4_K_M      # -> gguf/audio8-tts-eu-q4_k_m
+.venv-gguf/bin/python scripts/gguf/convert_eu.py --model hf_release/antzoki-mini-tts --out gguf/antzoki-mini-tts-f32
+bash scripts/gguf/quantize_eu.sh gguf/antzoki-mini-tts-f32 Q4_K_M      # -> gguf/antzoki-mini-tts-q4_k_m
 
 # synthesize on CPU (normalize the text first)
 TEXT=$(python -c 'import sys; sys.path.insert(0,"scripts"); from eu_normalize import normalize; print(normalize("Bihar goizean, zortzietan, Bilboko geltokian elkartuko gara."))')
-vendor/build-cpu/bin/llama-tts --audio8-model-dir gguf/audio8-tts-eu-q4_k_m \
+vendor/build-cpu/bin/llama-tts --audio8-model-dir gguf/antzoki-mini-tts-q4_k_m \
   --text "$TEXT" --output out.wav --gpu-layers 0 --threads 16 --max-frames 512 \
   [--reference-audio ref.wav --reference-text "exact transcript"]
 ```

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verificación del entorno TTS_basque (Audio8_TTS + pipeline tipo antzoki-tts).
+"""Verificación del entorno antzoki-mini-tts (Audio8_TTS + pipeline tipo antzoki-tts).
 
 Uso (con el entorno activado: `source scripts/env.sh`):
     python verify_env.py                 # comprobaciones rápidas, sin descargas
