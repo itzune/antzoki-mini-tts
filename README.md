@@ -249,6 +249,60 @@ python scripts/say.py --texts-file esaldiak.txt --cps 10 \
   --out-dir checkpoints/my_voice/mikel_slow
 ```
 
+## CPU inference with llama.cpp (GGUF, Q4)
+
+Audio8 ships a patched llama.cpp runtime (`repos/Audio8_TTS/llama_cpp`) with native text
+processing, DualAR generation, voice cloning and codec decoding, with no Python at inference.
+Its converter only accepts the pinned public checkpoint, so `scripts/gguf/convert_eu.py` runs it
+with a lock computed from our weights. The codec, tokenizer and processor are byte-identical to
+the base model's, as the runtime requires.
+
+```bash
+# once: patched llama.cpp (pinned commit) + CPU build with this machine's SIMD/OpenMP
+git clone https://github.com/ggml-org/llama.cpp.git vendor/llama.cpp
+git -C vendor/llama.cpp checkout d854d98bae598388ecea1ed84396587e5edc326d
+python3 repos/Audio8_TTS/llama_cpp/prepare.py --source vendor/llama.cpp
+cmake -S vendor/llama.cpp -B vendor/build-cpu -G "Unix Makefiles" \
+  -C repos/Audio8_TTS/llama_cpp/cmake/common.cmake \
+  -DGGML_NATIVE=ON -DGGML_OPENMP=ON -DAUDIO8_CODEC_OPENMP=ON '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib'
+cmake --build vendor/build-cpu --parallel --target llama-tts llama-quantize
+
+# once: pinned conversion env (torch 2.8.0 CPU, numpy 1.26.4, safetensors 0.5.3, PyYAML 6.0.3)
+uv venv .venv-gguf --python 3.11
+uv pip install --python .venv-gguf/bin/python --index-url https://download.pytorch.org/whl/cpu torch==2.8.0
+uv pip install --python .venv-gguf/bin/python numpy==1.26.4 safetensors==0.5.3 PyYAML==6.0.3
+
+# convert (F32 bundle, 3.6 GB) and quantize the two AR models
+.venv-gguf/bin/python scripts/gguf/convert_eu.py --model hf_release/audio8-tts-eu --out gguf/audio8-tts-eu-f32
+bash scripts/gguf/quantize_eu.sh gguf/audio8-tts-eu-f32 Q4_K_M      # -> gguf/audio8-tts-eu-q4_k_m
+
+# synthesize on CPU (normalize the text first)
+TEXT=$(python -c 'import sys; sys.path.insert(0,"scripts"); from eu_normalize import normalize; print(normalize("Bihar goizean, zortzietan, Bilboko geltokian elkartuko gara."))')
+vendor/build-cpu/bin/llama-tts --audio8-model-dir gguf/audio8-tts-eu-q4_k_m \
+  --text "$TEXT" --output out.wav --gpu-layers 0 --threads 16 --max-frames 512 \
+  [--reference-audio ref.wav --reference-text "exact transcript"]
+```
+
+Only the slow and fast AR models are quantized. The RoPE tables and the codec stay F32 because
+the runtime requires it, so the codec (1.35 GB) is most of the bundle. The model width (896) is
+not a multiple of 256, so Q4_K_M falls back to Q5_0/Q8_0 for about half of its tensors.
+
+`scripts/gguf/eval_gguf.py` compares bundles on CPU: 8 new sentences, with the held-out reference
+voice `euf_07505` and without a reference, 3 seeds each, run as 4 parallel jobs × 6 threads.
+
+| Bundle | size | SIM ↑ | runaway, with ref | runaway, no ref | RTF (with ref / no ref) |
+|---|---:|---:|---:|---:|---:|
+| F32 | 3.6 GB | 0.932 | 1/24 | 3/24 | 7.9 / 7.1 |
+| **Q4_K_M** | 1.9 GB | **0.940** | **0/24** | 4/24 | 3.7 / 2.7 |
+| Q4_0 | 1.8 GB | 0.923 | 3/24 | 7/24 | 3.4 / 2.4 |
+
+**Q4_K_M** is as good as F32 within noise and runs 2–2.6× faster. Q4_0 loses quality. RTF is
+seconds of compute per second of audio with 4 jobs sharing the CPU. One job with 16 threads runs
+at about 2 RTF (Q4_K_M, a 5 s sentence with a reference: 2.8 s AR + 4.7 s codec + 3.3 s
+reference encoding), so CPU synthesis is still slower than real time, and the F32 codec is the
+bottleneck. The runtime stops with an error when it reaches `--max-frames` without an end of
+speech, which is exactly when a runaway generation should be retried.
+
 ## Demo page
 
 `docs/index.html` (EU/EN) is a GitHub Pages site: Settings → Pages → *Deploy from branch*,
